@@ -15,6 +15,10 @@ public class EmissaoCartaoServiceImpl implements EmissaoCartaoService {
     private static final String PROPOSTA_APROVADA = "APROVADO";
     @Autowired
     private CartoesFeignClient cartoesFeignClient;
+
+    @Autowired
+    private EmailServiceImpl emailService;
+
     @Override
     public Cartao emitirCartao(Long propostaId) {
         try {
@@ -31,7 +35,7 @@ public class EmissaoCartaoServiceImpl implements EmissaoCartaoService {
             cartao.setValidade("12/25");
             cartao.setCvv("123");
 
-            // TODO: enviar notificacao de email
+            enviarEmailCartao(proposta.cliente().email(), cartao);
             return cartao;
         } catch (FeignException.NotFound e) {
             // Exceção específica para quando a proposta não é encontrada
@@ -43,5 +47,15 @@ public class EmissaoCartaoServiceImpl implements EmissaoCartaoService {
             // Outras exceções genéricas
             throw new RuntimeException("Erro ao emitir cartão", e);
         }
+    }
+
+    private void enviarEmailCartao(String email, Cartao cartao) {
+        String emailContent = "Seu cartão foi emitido com sucesso!\n" +
+                "Número: " + cartao.getNumero() + "\n" +
+                "Nome: " + cartao.getNomeCliente() + "\n" +
+                "Validade: " + cartao.getValidade() + "\n" +
+                "CVV: " + cartao.getCvv();
+
+        emailService.sendEmail(email, "Emissão de Cartão", emailContent);
     }
 }
